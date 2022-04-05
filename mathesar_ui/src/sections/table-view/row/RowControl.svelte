@@ -66,7 +66,7 @@
     {/if}
   </div>
 
-  {#if genericModificationStatus === 'inprocess'}
+  {#if genericModificationStatus === 'inProcess'}
     <Icon class="mod-indicator" size="0.9em" data={faSync} spin={true} />
   {/if}
 </div>

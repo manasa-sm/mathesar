@@ -12,23 +12,31 @@ import type { RecordsRequestParamsData } from './records';
 
 export const RECORD_COMBINED_STATE_KEY = '__combined';
 
-export type UpdateModificationType = 'update' | 'updated' | 'updateFailed';
+export type UpdateModificationType = 'updating' | 'updated' | 'updateFailed';
 
 export type ModificationType =
-  | 'create'
+  | 'creating'
   | 'created'
   | 'creationFailed'
   | UpdateModificationType
-  | 'delete'
+  | 'deleting'
   | 'deleteFailed';
 
-export type ModificationStatus = 'inprocess' | 'complete' | 'error' | 'idle';
+export type ModificationStatus = 'inProcess' | 'complete' | 'error' | 'idle';
+
+/**
+ * The outer Map keys are "recordKey" values. For normal records, these are the
+ * values of the primary key column. For new records, they are the row
+ * identifiers, e.g. "__0_new_0".
+ *
+ * The inner Map keys are "cellKey" values.
+ */
 export type ModificationStateMap = Map<unknown, Map<unknown, ModificationType>>;
 
 const inProgressSet: Set<ModificationType> = new Set([
-  'create',
-  'update',
-  'delete',
+  'creating',
+  'updating',
+  'deleting',
 ]);
 const completeSet: Set<ModificationType> = new Set(['created', 'updated']);
 const errorSet: Set<ModificationType> = new Set([
@@ -48,7 +56,7 @@ export function getGenericModificationStatusByPK(
     return 'idle';
   }
   if (inProgressSet.has(type)) {
-    return 'inprocess';
+    return 'inProcess';
   }
   if (completeSet.has(type)) {
     return 'complete';
@@ -66,8 +74,8 @@ function getCombinedUpdateState(
   // eslint-disable-next-line no-restricted-syntax
   for (const [key, value] of cellMap) {
     if (key !== RECORD_COMBINED_STATE_KEY) {
-      if (value === 'update') {
-        state = 'update';
+      if (value === 'updating') {
+        state = 'updating';
         break;
       } else if (value === 'updateFailed') {
         state = 'updateFailed';
@@ -93,7 +101,7 @@ function getCombinedModificationState(
           const rowState = value?.get(RECORD_COMBINED_STATE_KEY);
           if (rowState) {
             if (inProgressSet.has(rowState)) {
-              finalState = 'inprocess';
+              finalState = 'inProcess';
               break;
             }
             if (errorSet.has(rowState)) {
@@ -196,6 +204,9 @@ export class Meta {
 
     this.selectedRecords = writable(new Set());
     this.recordModificationState = writable(new Map() as ModificationStateMap);
+    this.recordModificationState.subscribe((v) => {
+      console.log({ e: 'update recordModificationState', v });
+    });
 
     this.combinedModificationState = getCombinedModificationState(
       this.recordModificationState,

@@ -172,7 +172,7 @@
   {#if $combinedModificationState !== 'idle'}
     <div class="divider" />
     <div class="save-status">
-      {#if $combinedModificationState === 'inprocess'}
+      {#if $combinedModificationState === 'inProcess'}
         Saving changes
       {:else if $combinedModificationState === 'error'}
         <span class="error">! Couldn't save changes</span>

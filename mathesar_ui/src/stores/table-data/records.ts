@@ -341,7 +341,7 @@ export class RecordsData {
     const pkSet = getStoreValue(this.meta.selectedRecords);
 
     if (pkSet.size > 0) {
-      this.meta.setMultipleRecordModificationStates([...pkSet], 'delete');
+      this.meta.setMultipleRecordModificationStates([...pkSet], 'deleting');
 
       try {
         const successSet: Set<unknown> = new Set();
@@ -430,7 +430,7 @@ export class RecordsData {
     const rowKey = getRowKey(row, primaryKeyColumnId);
     const rowKeyString = String(rowKey);
     const cellKey = `${rowKeyString}::${column.id}`;
-    this.meta.setCellUpdateState(rowKey, cellKey, 'update');
+    this.meta.setCellUpdateState(rowKey, cellKey, 'updating');
     this.updatePromises?.get(cellKey)?.cancel();
     const promise = patchAPI<unknown>(
       `${this.url}${String(primaryKeyValue)}/`,
@@ -478,7 +478,7 @@ export class RecordsData {
       return;
     }
     const rowKey = getRowKey(row, primaryKeyColumnId);
-    this.meta.setRecordModificationState(rowKey, 'update');
+    this.meta.setRecordModificationState(rowKey, 'updating');
     this.updatePromises?.get(rowKey)?.cancel();
     const promise = patchAPI<unknown>(
       `${this.url}${String(primaryKeyValue)}/`,
@@ -524,7 +524,7 @@ export class RecordsData {
   async createRecord(row: Row): Promise<void> {
     const { primaryKeyColumnId } = this.columnsDataStore.get();
     const rowKey = getRowKey(row, primaryKeyColumnId);
-    this.meta.setRecordModificationState(rowKey, 'create');
+    this.meta.setRecordModificationState(rowKey, 'creating');
     this.createPromises?.get(rowKey)?.cancel();
     const promise = postAPI<ApiRecord>(this.url, prepareRowForRequest(row));
     if (!this.createPromises) {
