@@ -64,7 +64,7 @@
 
   function checkAndCreateEmptyRow() {
     if (row.isAddPlaceholder) {
-      void recordsData.createOrUpdateRecord(row);
+      void recordsData.addEmptyRecord();
     }
   }
 </script>

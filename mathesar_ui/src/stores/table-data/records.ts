@@ -522,8 +522,8 @@ export class RecordsData {
   }
 
   async createRecord(row: Row): Promise<void> {
-    const { primaryKeyColumnId: primaryKey } = this.columnsDataStore.get();
-    const rowKey = getRowKey(row, primaryKey);
+    const { primaryKeyColumnId } = this.columnsDataStore.get();
+    const rowKey = getRowKey(row, primaryKeyColumnId);
     this.meta.setRecordModificationState(rowKey, 'create');
     this.createPromises?.get(rowKey)?.cancel();
     const promise = postAPI<ApiRecord>(this.url, prepareRowForRequest(row));
@@ -539,7 +539,7 @@ export class RecordsData {
         record,
         isAddPlaceholder: false,
       };
-      const updatedRowKey = getRowKey(newRow, primaryKey);
+      const updatedRowKey = getRowKey(newRow, primaryKeyColumnId);
       this.meta.clearRecordModificationState(rowKey);
       this.meta.setRecordModificationState(updatedRowKey, 'created');
       this.newRecords.update((existing) =>
