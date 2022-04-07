@@ -126,16 +126,16 @@ export type RequestStatus =
   | { state: 'success' }
   | { state: 'failure'; errors: string[] };
 
-interface CellStatusReport {
-  clientSideErrors: Writable<string[]>;
-  modificationStatus: Writable<RequestStatus | undefined>;
-}
+// interface CellStatusReport {
+//   clientSideErrors: Writable<string[]>;
+//   modificationStatus: Writable<RequestStatus | undefined>;
+// }
 
-interface RowStatusReport {
-  deletionStatus: Writable<RequestStatus | undefined>;
-  creationStatus: Writable<RequestStatus | undefined>;
-  hasModificationFailures: Readable<boolean>;
-}
+// interface RowStatusReport {
+//   deletionStatus: Writable<RequestStatus | undefined>;
+//   creationStatus: Writable<RequestStatus | undefined>;
+//   hasModificationFailures: Readable<boolean>;
+// }
 
 type CellKey = string;
 type RowKey = string;
@@ -207,7 +207,13 @@ export class Meta {
 
   // combinedModificationState: Readable<ModificationStatus>; // TODO_SC remove
 
-  cellClientSideErrors: WritableMap<CellKey, string[]>;
+  cellClientSideErrors = new WritableMap<CellKey, string[]>();
+
+  /**
+   * For each cell, the status of the most recent request to update the cell. If
+   * no update request has been made, then no entry will be present in the map.
+   */
+  cellModificationStatus = new WritableMap<CellKey, RequestStatus>();
 
   /**
    * Allows us to save and re-create Meta, e.g. from data stored in the tab
@@ -234,8 +240,6 @@ export class Meta {
     // this.combinedModificationState = getCombinedModificationState(
     //   this.recordModificationState,
     // );
-
-    this.cellClientSideErrors = new WritableMap();
 
     // Why do `this.props` and `this.recordsRequestParamsData` look identical?
     //
