@@ -90,7 +90,7 @@ export interface Row {
   isGroupHeader?: boolean;
   group?: Group;
   rowIndex?: number;
-  state?: string;
+  // state?: string; // TODO_SC remove
   groupValues?: Record<string, unknown>;
 }
 
