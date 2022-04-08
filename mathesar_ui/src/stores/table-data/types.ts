@@ -17,5 +17,5 @@ export type {
   ConstraintsData,
   ConstraintsDataStore,
 } from './constraints';
-export type { Meta, ModificationType, MetaProps } from './meta';
+export type { Meta, MetaProps } from './meta';
 export type { Display } from './display';
