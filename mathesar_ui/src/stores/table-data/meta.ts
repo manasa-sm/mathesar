@@ -1,4 +1,8 @@
-import { ImmutableMap, WritableMap } from '@mathesar-component-library';
+import {
+  ImmutableMap,
+  WritableMap,
+  ImmutableSet,
+} from '@mathesar-component-library';
 import { writable, derived, get } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 import type { TerseFiltering } from './filtering';
@@ -137,8 +141,83 @@ export type RequestStatus =
 //   hasModificationFailures: Readable<boolean>;
 // }
 
-type CellKey = string;
-type RowKey = string;
+export type CellKey = string;
+export type RowKey = string;
+
+const CELL_KEY_SEPARATOR = '::';
+
+function getCellKey(rowKey: RowKey, columnId: string): CellKey {
+  return `${String(rowKey)}${CELL_KEY_SEPARATOR}${columnId}`;
+}
+
+function extractRowKeyFromCellKey(cellKey: CellKey): RowKey {
+  return cellKey
+    .split(CELL_KEY_SEPARATOR)
+    .slice(0, -1)
+    .join(CELL_KEY_SEPARATOR);
+}
+
+/**
+ * Unlike in `RequestStatus`, here the state and the error messages are
+ * disentangled. That's because it's possible to have a `wholeRowState` of
+ * `'success'` (if the row has been added) and still have error messages to
+ * display (if the user has attempted to update a _cell_ within the row, but
+ * that update has failed.)
+ */
+interface RowStatus {
+  /**
+   * The combined state of the most recent "creation" or "deletion" request.
+   */
+  wholeRowState?: RequestStatus['state'];
+
+  errorsFromWholeRowAndCells: string[];
+}
+
+function getRowStatus({
+  cellModificationStatus,
+  rowDeletionStatus,
+  rowCreationStatus,
+}: {
+  rowCreationStatus: ImmutableMap<RowKey, RequestStatus>;
+  rowDeletionStatus: ImmutableMap<RowKey, RequestStatus>;
+  cellModificationStatus: ImmutableMap<CellKey, RequestStatus>;
+}): ImmutableMap<RowKey, RowStatus> {
+  type PartialResult = ImmutableMap<RowKey, Partial<RowStatus>>;
+
+  const keysOfRowsWithCellErrors = [...cellModificationStatus].reduce(
+    (rows, [cellKey, cellStatus]) =>
+      cellStatus.state === 'failure'
+        ? rows.with(extractRowKeyFromCellKey(cellKey))
+        : rows,
+    new ImmutableSet<RowKey>(),
+  );
+  const msg = 'This row contains a cell with an error.';
+  const statusFromCells: PartialResult = new ImmutableMap(
+    [...keysOfRowsWithCellErrors].map((rowKey) => [
+      rowKey,
+      { errorsFromWholeRowAndCells: [msg] },
+    ]),
+  );
+
+  const statusFromCreationAndDeletion: PartialResult = rowCreationStatus
+    .withEntries(rowDeletionStatus)
+    .mapValues((requestStatus) => ({ wholeRowState: requestStatus.state }));
+
+  function mergeStatuses(a: Partial<RowStatus>, b: Partial<RowStatus>) {
+    return { ...a, ...b };
+  }
+
+  function makeStatusComplete(partialStatus: Partial<RowStatus>): RowStatus {
+    return {
+      errorsFromWholeRowAndCells: [],
+      ...partialStatus,
+    };
+  }
+
+  return statusFromCells
+    .withEntries(statusFromCreationAndDeletion, mergeStatuses)
+    .mapValues(makeStatusComplete);
+}
 
 // =============================================================================
 
@@ -211,9 +290,24 @@ export class Meta {
 
   /**
    * For each cell, the status of the most recent request to update the cell. If
-   * no update request has been made, then no entry will be present in the map.
+   * no request has been made, then no entry will be present in the map.
    */
   cellModificationStatus = new WritableMap<CellKey, RequestStatus>();
+
+  /**
+   * For each row, the status of the most recent request to delete the row. If
+   * no request has been made, then no entry will be present in the map.
+   */
+  rowDeletionStatus = new WritableMap<RowKey, RequestStatus>();
+
+  /**
+   * For each newly added row, the status of the most recent request to add
+   * the row. If no request has been made, then no entry will be present in the
+   * map. Rows that are not newly added rows will never have entries here.
+   */
+  rowCreationStatus = new WritableMap<RowKey, RequestStatus>();
+
+  rowStatus: Readable<ImmutableMap<RowKey, RowStatus>>;
 
   /**
    * Allows us to save and re-create Meta, e.g. from data stored in the tab
@@ -240,6 +334,20 @@ export class Meta {
     // this.combinedModificationState = getCombinedModificationState(
     //   this.recordModificationState,
     // );
+
+    this.rowStatus = derived(
+      [
+        this.cellModificationStatus,
+        this.rowDeletionStatus,
+        this.rowCreationStatus,
+      ],
+      ([cellModificationStatus, rowDeletionStatus, rowCreationStatus]) =>
+        getRowStatus({
+          cellModificationStatus,
+          rowDeletionStatus,
+          rowCreationStatus,
+        }),
+    );
 
     // Why do `this.props` and `this.recordsRequestParamsData` look identical?
     //

@@ -6,8 +6,11 @@ import {
   patchAPI,
   postAPI,
 } from '@mathesar/utils/api';
-import type { Writable, Unsubscriber } from 'svelte/store';
-import type { CancellablePromise } from '@mathesar-component-library';
+import type { Writable, Unsubscriber, Readable } from 'svelte/store';
+import type {
+  CancellablePromise,
+  ImmutableMap,
+} from '@mathesar-component-library';
 import type { DBObjectEntry } from '@mathesar/App.d';
 import type {
   Result as ApiRecord,
@@ -18,7 +21,7 @@ import type {
   GroupingMode,
   GetRequestParams as ApiGetRequestParams,
 } from '@mathesar/api/tables/records';
-import type { Meta } from './meta';
+import type { Meta, RequestStatus, CellKey, RowKey } from './meta';
 import type { ColumnsDataStore, Column } from './columns';
 import type { Pagination } from './pagination';
 import type { Sorting } from './sorting';
@@ -93,6 +96,33 @@ export interface Row {
   // state?: string; // TODO_SC remove
   groupValues?: Record<string, unknown>;
 }
+
+// /**
+//  * Unlike in `RequestStatus`, here the state and the error messages are
+//  * disentangled. That's because it's possible to have a `wholeRowState` of
+//  * `'success'` (if the row has been added) and still have error messages to
+//  * display (if the user has attempted to update a _cell_ within the row, but
+//  * that update has failed.)
+//  */
+// interface RowStatus {
+//   isProcessing: boolean;
+//   /**
+//    * The combined state of the most recent "creation" or "deletion" request.
+//    */
+//   wholeRowState: RequestStatus['state'];
+
+//   errorsFromWholeRowAndCells: string[];
+// }
+
+// function getRowStatus({
+//   cellModificationStatus,
+//   rowDeletionStatus,
+//   rowCreationStatus,
+// }: {
+//   cellModificationStatus: ImmutableMap<CellKey, RequestStatus>;
+//   rowDeletionStatus: ImmutableMap<RowKey, RequestStatus>;
+//   rowCreationStatus: ImmutableMap<RowKey, RequestStatus>;
+// }): RowStatus {}
 
 export interface TableRecordsData {
   state: States;
@@ -213,6 +243,8 @@ export class RecordsData {
 
   newRecords: Writable<Row[]>;
 
+  // rowStatus: Readable<Map<RowKey, RowStatus>>;
+
   grouping: Writable<Grouping | undefined>;
 
   totalCount: Writable<number | undefined>;
@@ -251,6 +283,11 @@ export class RecordsData {
     this.error = writable(undefined);
 
     this.meta = meta;
+    // this.rowStatus = derived([
+    //   this.meta.cellModificationStatus,
+    //   this.meta.rowDeletionStatus,
+    //   this.meta.rowCreationStatus,
+    // ], );
     this.columnsDataStore = columnsDataStore;
     const tabularEntity = this.type === TabularType.Table ? 'tables' : 'views';
     this.url = `/api/db/v0/${tabularEntity}/${this.parentId}/records/`;
@@ -429,7 +466,7 @@ export class RecordsData {
     }
     const rowKey = getRowKey(row, primaryKeyColumnId);
     const rowKeyString = String(rowKey);
-    const cellKey = `${rowKeyString}::${column.id}`;
+    const cellKey = `${rowKeyString}::${column.id}`; // TODO_SC use `getCellKey`
     this.meta.setCellUpdateState(rowKey, cellKey, 'updating');
     this.updatePromises?.get(cellKey)?.cancel();
     const promise = patchAPI<unknown>(

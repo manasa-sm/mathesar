@@ -37,10 +37,16 @@ export default class ImmutableMap<
    * of the values in this instance. This behavior is consistent with the `with`
    * method.
    */
-  withEntries(entries: Iterable<[Key, Value]>): this {
+  withEntries(
+    entries: Iterable<[Key, Value]>,
+    mergeValues: (a: Value, b: Value) => Value = (_, b) => b,
+  ): this {
     const map = new Map(this.map);
     [...entries].forEach(([key, value]) => {
-      map.set(key, value);
+      const existingValue = this.get(key);
+      const newValue =
+        existingValue === undefined ? value : mergeValues(existingValue, value);
+      map.set(key, newValue);
     });
     return this.getNewInstance(map);
   }
@@ -97,6 +103,14 @@ export default class ImmutableMap<
 
   entries(): IterableIterator<[Key, Value]> {
     return this.map.entries();
+  }
+
+  mapValues<NewValue>(
+    fn: (value: Value) => NewValue,
+  ): ImmutableMap<Key, NewValue> {
+    return new ImmutableMap(
+      [...this.entries()].map(([key, value]) => [key, fn(value)]),
+    );
   }
 
   [Symbol.iterator](): IterableIterator<[Key, Value]> {
