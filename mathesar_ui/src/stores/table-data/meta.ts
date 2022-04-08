@@ -170,6 +170,10 @@ interface RowStatus {
    */
   wholeRowState?: RequestStatus['state'];
 
+  /**
+   * The triangle error popover indicator will display whenever this array
+   * contains errors -- even if `wholeRowState` is `'success'`.
+   */
   errorsFromWholeRowAndCells: string[];
 }
 
