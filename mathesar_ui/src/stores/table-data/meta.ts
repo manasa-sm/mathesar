@@ -1,10 +1,12 @@
+import { writable, derived } from 'svelte/store';
+import type { Writable, Readable } from 'svelte/store';
 import {
   ImmutableMap,
   WritableMap,
   ImmutableSet,
+  WritableSet,
 } from '@mathesar-component-library';
-import { writable, derived, get } from 'svelte/store';
-import type { Writable, Readable } from 'svelte/store';
+import type { RequestStatus } from '@mathesar/utils/api';
 import type { TerseFiltering } from './filtering';
 import { Filtering } from './filtering';
 import type { TerseSorting } from './sorting';
@@ -125,10 +127,21 @@ import type { RecordsRequestParamsData } from './records';
 
 // =============================================================================
 
-export type RequestStatus =
-  | { state: 'processing' }
-  | { state: 'success' }
-  | { state: 'failure'; errors: string[] };
+export type CellKey = string;
+export type RowKey = string;
+
+const CELL_KEY_SEPARATOR = '::';
+
+export function getCellKey(rowKey: RowKey, columnId: string | number): CellKey {
+  return `${String(rowKey)}${CELL_KEY_SEPARATOR}${columnId}`;
+}
+
+export function extractRowKeyFromCellKey(cellKey: CellKey): RowKey {
+  return cellKey
+    .split(CELL_KEY_SEPARATOR)
+    .slice(0, -1)
+    .join(CELL_KEY_SEPARATOR);
+}
 
 // interface CellStatusReport {
 //   clientSideErrors: Writable<string[]>;
@@ -140,22 +153,6 @@ export type RequestStatus =
 //   creationStatus: Writable<RequestStatus | undefined>;
 //   hasModificationFailures: Readable<boolean>;
 // }
-
-export type CellKey = string;
-export type RowKey = string;
-
-const CELL_KEY_SEPARATOR = '::';
-
-function getCellKey(rowKey: RowKey, columnId: string): CellKey {
-  return `${String(rowKey)}${CELL_KEY_SEPARATOR}${columnId}`;
-}
-
-function extractRowKeyFromCellKey(cellKey: CellKey): RowKey {
-  return cellKey
-    .split(CELL_KEY_SEPARATOR)
-    .slice(0, -1)
-    .join(CELL_KEY_SEPARATOR);
-}
 
 /**
  * Unlike in `RequestStatus`, here the state and the error messages are
@@ -284,7 +281,7 @@ export class Meta {
 
   filtering: Writable<Filtering>;
 
-  selectedRecords: Writable<Set<unknown>>;
+  selectedRows = new WritableSet<RowKey>();
 
   // Row -> Cell -> Type
   // recordModificationState: Writable<ModificationStateMap>; // TODO_SC remove
@@ -333,7 +330,6 @@ export class Meta {
     this.grouping = writable(props.grouping);
     this.filtering = writable(props.filtering);
 
-    this.selectedRecords = writable(new Set());
     // this.recordModificationState = writable(new Map() as ModificationStateMap);
 
     // this.combinedModificationState = getCombinedModificationState(
@@ -382,29 +378,25 @@ export class Meta {
     );
   }
 
-  clearSelectedRecords(): void {
-    this.selectedRecords.set(new Set());
-  }
+  // selectRecordByPrimaryKey(primaryKeyValue: unknown): void {
+  //   if (!get(this.selectedRows).has(primaryKeyValue)) {
+  //     this.selectedRows.update((existingSet) => {
+  //       const newSet = new Set(existingSet);
+  //       newSet.add(primaryKeyValue);
+  //       return newSet;
+  //     });
+  //   }
+  // }
 
-  selectRecordByPrimaryKey(primaryKeyValue: unknown): void {
-    if (!get(this.selectedRecords).has(primaryKeyValue)) {
-      this.selectedRecords.update((existingSet) => {
-        const newSet = new Set(existingSet);
-        newSet.add(primaryKeyValue);
-        return newSet;
-      });
-    }
-  }
-
-  deSelectRecordByPrimaryKey(primaryKeyValue: unknown): void {
-    if (get(this.selectedRecords).has(primaryKeyValue)) {
-      this.selectedRecords.update((existingSet) => {
-        const newSet = new Set(existingSet);
-        newSet.delete(primaryKeyValue);
-        return newSet;
-      });
-    }
-  }
+  // deSelectRecordByPrimaryKey(primaryKeyValue: unknown): void {
+  //   if (get(this.selectedRows).has(primaryKeyValue)) {
+  //     this.selectedRows.update((existingSet) => {
+  //       const newSet = new Set(existingSet);
+  //       newSet.delete(primaryKeyValue);
+  //       return newSet;
+  //     });
+  //   }
+  // }
 
   // =============================================================================
 

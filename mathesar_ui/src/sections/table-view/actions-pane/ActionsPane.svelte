@@ -45,7 +45,7 @@
     filtering,
     sorting,
     grouping,
-    selectedRecords,
+    selectedRows,
     combinedModificationState,
   } = meta);
   $: recordState = recordsData.state;
@@ -160,11 +160,11 @@
     <span> New Record </span>
   </Button>
 
-  {#if $selectedRecords.size > 0}
+  {#if $selectedRows.size > 0}
     <Button size="small" on:click={() => recordsData.deleteSelected()}>
       <Icon data={faTrashAlt} />
       <span>
-        Delete {$selectedRecords.size} records
+        Delete {$selectedRows.size} records
       </span>
     </Button>
   {/if}

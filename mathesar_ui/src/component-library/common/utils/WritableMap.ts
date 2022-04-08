@@ -30,15 +30,42 @@ export default class WritableMap<
     this.map.set(new ImmutableMap());
   }
 
-  delete(key: Key): void {
-    this.map.update((map) => map.without(key));
+  delete(keyOrKeys: Key | Key[]): void {
+    this.map.update((m) => m.without(keyOrKeys));
   }
 
-  set(key: Key, value: Value): void {
-    this.map.update((map) => map.with(key, value));
+  set(
+    key: Key,
+    value: Value,
+    mergeValues: (a: Value, b: Value) => Value = (_, b) => b,
+  ): void {
+    this.map.update((m) => m.with(key, value, mergeValues));
   }
 
-  entries(): IterableIterator<[Key, Value]> {
+  setEntries(
+    i: Iterable<[Key, Value]> = [],
+    mergeValues: (a: Value, b: Value) => Value = (_, b) => b,
+  ): void {
+    this.map.update((m) => m.withEntries(i, mergeValues));
+  }
+
+  /**
+   * Sets many keys to the same value.
+   */
+  setMultiple(
+    i: Iterable<Key>,
+    value: Value,
+    mergeValues: (a: Value, b: Value) => Value = (_, b) => b,
+  ): void {
+    this.map.update((m) =>
+      m.withEntries(
+        [...i].map((key) => [key, value]),
+        mergeValues,
+      ),
+    );
+  }
+
+  getEntries(): IterableIterator<[Key, Value]> {
     return get(this.map).entries();
   }
 
@@ -46,7 +73,7 @@ export default class WritableMap<
     return derived(this.map, (m) => m.entries());
   }
 
-  has(key: Key): boolean {
+  getHas(key: Key): boolean {
     return get(this.map).has(key);
   }
 
@@ -54,15 +81,15 @@ export default class WritableMap<
     return derived(this.map, (m) => m.has(key));
   }
 
-  get(key: Key): Value | undefined {
+  getValue(key: Key): Value | undefined {
     return get(this.map).get(key);
   }
 
-  derivedGet(key: Key): Readable<Value | undefined> {
+  derivedValue(key: Key): Readable<Value | undefined> {
     return derived(this.map, (m) => m.get(key));
   }
 
-  keys(): IterableIterator<Key> {
+  getKeys(): IterableIterator<Key> {
     return get(this.map).keys();
   }
 
@@ -70,7 +97,7 @@ export default class WritableMap<
     return derived(this.map, (m) => m.keys());
   }
 
-  values(): IterableIterator<Value> {
+  getValues(): IterableIterator<Value> {
     return get(this.map).values();
   }
 

@@ -16,13 +16,13 @@
   export let meta: Meta;
   export let recordsData: RecordsData;
 
-  $: ({ selectedRecords, recordModificationState, pagination } = meta);
+  $: ({ selectedRows, recordModificationState, pagination } = meta);
   $: ({ savedRecords, newRecords, totalCount } = recordsData);
 
   $: primaryKeyValue = primaryKeyColumnId
     ? row.record?.[primaryKeyColumnId]
     : undefined;
-  $: isRowSelected = ($selectedRecords as Set<unknown>).has(primaryKeyValue);
+  $: isRowSelected = $selectedRows.has(primaryKeyValue);
   $: genericModificationStatus = getGenericModificationStatus(
     $recordModificationState,
     row,

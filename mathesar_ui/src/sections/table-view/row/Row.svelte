@@ -23,7 +23,7 @@
 
   $: ({ recordsData, columnsDataStore, meta, display } = $tabularData);
   $: ({ columnPositionMap } = display);
-  $: ({ selectedRecords, recordModificationState } = meta);
+  $: ({ selectedRows, recordModificationState } = meta);
   $: ({ grouping } = recordsData);
 
   function calculateStyle(
@@ -52,8 +52,7 @@
 
   $: ({ primaryKeyColumnId } = $columnsDataStore);
   $: isSelected =
-    primaryKeyColumnId &&
-    $selectedRecords.has(row.record?.[primaryKeyColumnId]);
+    primaryKeyColumnId && $selectedRows.has(row.record?.[primaryKeyColumnId]);
   $: modificationState = getModificationState(
     $recordModificationState,
     row,

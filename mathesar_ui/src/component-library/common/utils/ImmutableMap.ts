@@ -22,13 +22,18 @@ export default class ImmutableMap<
   }
 
   /**
-   * The value supplied here will overwrite any value that is already associated
-   * with `key`.
+   * By default, the value supplied here will overwrite any value that is
+   * already associated with `key`. Alternatively, if you supply a `mergeValues`
+   * function, that function will be used to merge the existing value (provided
+   * as the first argument) with the supplied value (provided as the second
+   * argument).
    */
-  with(key: Key, value: Value): this {
-    const map = new Map(this.map);
-    map.set(key, value);
-    return this.getNewInstance(map);
+  with(
+    key: Key,
+    value: Value,
+    mergeValues: (a: Value, b: Value) => Value = (_, b) => b,
+  ): this {
+    return this.withEntries([[key, value]], mergeValues);
   }
 
   /**
@@ -79,9 +84,10 @@ export default class ImmutableMap<
     return this.getNewInstance(map);
   }
 
-  without(key: Key): this {
+  without(keyOrKeys: Key | Key[]): this {
+    const keys = Array.isArray(keyOrKeys) ? keyOrKeys : [keyOrKeys];
     const map = new Map(this.map);
-    map.delete(key);
+    keys.forEach((key) => map.delete(key));
     return this.getNewInstance(map);
   }
 
