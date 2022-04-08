@@ -91,36 +91,8 @@ export interface Row {
   isGroupHeader?: boolean;
   group?: Group;
   rowIndex?: number;
-  // state?: string; // TODO_SC remove
   groupValues?: Record<string, unknown>;
 }
-
-// /**
-//  * Unlike in `RequestStatus`, here the state and the error messages are
-//  * disentangled. That's because it's possible to have a `wholeRowState` of
-//  * `'success'` (if the row has been added) and still have error messages to
-//  * display (if the user has attempted to update a _cell_ within the row, but
-//  * that update has failed.)
-//  */
-// interface RowStatus {
-//   isProcessing: boolean;
-//   /**
-//    * The combined state of the most recent "creation" or "deletion" request.
-//    */
-//   wholeRowState: RequestStatus['state'];
-
-//   errorsFromWholeRowAndCells: string[];
-// }
-
-// function getRowStatus({
-//   cellModificationStatus,
-//   rowDeletionStatus,
-//   rowCreationStatus,
-// }: {
-//   cellModificationStatus: ImmutableMap<CellKey, RequestStatus>;
-//   rowDeletionStatus: ImmutableMap<RowKey, RequestStatus>;
-//   rowCreationStatus: ImmutableMap<RowKey, RequestStatus>;
-// }): RowStatus {}
 
 export interface TableRecordsData {
   state: States;
@@ -203,7 +175,6 @@ function preprocessRecords({
           group: recordIndexToGroupMap.get(index),
           identifier: generateRowIdentifier('groupHeader', offset, groupIndex),
           groupValues: record,
-          // state: 'done',
         });
         groupIndex += 1;
       }
@@ -213,7 +184,6 @@ function preprocessRecords({
       record,
       identifier: generateRowIdentifier('normal', offset, existingRecordIndex),
       rowIndex: index,
-      // state: 'done',
     });
     index += 1;
     existingRecordIndex += 1;
@@ -241,8 +211,6 @@ export class RecordsData {
   savedRecords: Writable<Row[]>;
 
   newRecords: Writable<Row[]>;
-
-  // rowStatus: Readable<Map<RowKey, RowStatus>>;
 
   grouping: Writable<Grouping | undefined>;
 
@@ -282,11 +250,6 @@ export class RecordsData {
     this.error = writable(undefined);
 
     this.meta = meta;
-    // this.rowStatus = derived([
-    //   this.meta.cellModificationStatus,
-    //   this.meta.rowDeletionStatus,
-    //   this.meta.rowCreationStatus,
-    // ], );
     this.columnsDataStore = columnsDataStore;
     const tabularEntity = this.type === TabularType.Table ? 'tables' : 'views';
     this.url = `/api/db/v0/${tabularEntity}/${this.parentId}/records/`;
@@ -334,7 +297,6 @@ export class RecordsData {
     this.state.set(States.Loading);
     if (!retainExistingRows) {
       this.newRecords.set([]);
-      // this.meta.clearAllRecordModificationStates();
       this.meta.cellClientSideErrors.clear();
       this.meta.cellModificationStatus.clear();
       this.meta.rowCreationStatus.clear();
@@ -381,7 +343,6 @@ export class RecordsData {
     const rowKeys = [...this.meta.selectedRows.getValues()];
 
     if (rowKeys.length > 0) {
-      // this.meta.setMultipleRecordModificationStates([...pkSet], 'deleting');
       this.meta.rowDeletionStatus.setMultiple(rowKeys, { state: 'processing' });
 
       try {
@@ -431,11 +392,6 @@ export class RecordsData {
           });
           return retained;
         });
-        // this.meta.clearMultipleRecordModificationStates([...successRowKeys]);
-        // this.meta.setMultipleRecordModificationStates(
-        //   [...failureRowKeys],
-        //   'deleteFailed',
-        // );
         this.meta.rowCreationStatus.delete([...successRowKeys]);
         this.meta.rowDeletionStatus.delete([...successRowKeys]);
         this.meta.rowDeletionStatus.setEntries(
@@ -476,10 +432,7 @@ export class RecordsData {
       return;
     }
     const rowKey = getRowKey(row, primaryKeyColumnId);
-    // const rowKeyString = String(rowKey);
-    // const cellKey = `${rowKeyString}::${column.id}`;
     const cellKey = getCellKey(rowKey, column.id);
-    // this.meta.setCellUpdateState(rowKey, cellKey, 'updating');
     this.meta.cellModificationStatus.set(cellKey, { state: 'processing' });
     this.updatePromises?.get(cellKey)?.cancel();
     const promise = patchAPI<unknown>(
@@ -493,7 +446,6 @@ export class RecordsData {
 
     try {
       await promise;
-      // this.meta.setCellUpdateState(rowKey, cellKey, 'updated');
       this.meta.cellModificationStatus.set(cellKey, { state: 'success' });
     } catch (err) {
       this.meta.cellModificationStatus.set(cellKey, {
@@ -529,7 +481,6 @@ export class RecordsData {
   async createRecord(row: Row): Promise<void> {
     const { primaryKeyColumnId } = this.columnsDataStore.get();
     const rowKeyOfBlankRow = getRowKey(row, primaryKeyColumnId);
-    // this.meta.setRecordModificationState(rowKey, 'creating');
     this.meta.rowCreationStatus.set(rowKeyOfBlankRow, { state: 'processing' });
     this.createPromises?.get(rowKeyOfBlankRow)?.cancel();
     const promise = postAPI<ApiRecord>(this.url, prepareRowForRequest(row));
@@ -546,9 +497,7 @@ export class RecordsData {
         isAddPlaceholder: false,
       };
       const rowKeyWithRecord = getRowKey(newRow, primaryKeyColumnId);
-      // this.meta.clearRecordModificationState(rowKeyOfBlankRow);
       this.meta.rowCreationStatus.delete(rowKeyOfBlankRow);
-      // this.meta.setRecordModificationState(rowKeyWithRecord, 'created');
       this.meta.rowCreationStatus.set(rowKeyWithRecord, { state: 'success' });
       this.newRecords.update((existing) =>
         existing.map((entry) => {
@@ -560,7 +509,6 @@ export class RecordsData {
       );
       this.totalCount.update((count) => (count ?? 0) + 1);
     } catch (err) {
-      // this.meta.setRecordModificationState(rowKeyOfBlankRow, 'creationFailed');
       this.meta.rowCreationStatus.set(rowKeyOfBlankRow, {
         state: 'failure',
         errors: [getErrorMessage(err)],

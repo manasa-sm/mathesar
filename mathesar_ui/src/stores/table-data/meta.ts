@@ -17,116 +17,6 @@ import type { TerseGrouping } from './grouping';
 import { Grouping } from './grouping';
 import type { RecordsRequestParamsData } from './records';
 
-// export const RECORD_COMBINED_STATE_KEY = '__combined';
-
-// export type UpdateModificationType = 'updating' | 'updated' | 'updateFailed';
-
-// export type ModificationType =
-//   | 'creating'
-//   | 'created'
-//   | 'creationFailed'
-//   | UpdateModificationType
-//   | 'deleting'
-//   | 'deleteFailed';
-
-// export type ModificationStatus = 'inProcess' | 'complete' | 'error' | 'idle';
-
-// /**
-//  * The outer Map keys are "recordKey" values. For normal records, these are the
-//  * values of the primary key column. For new records, they are the row
-//  * identifiers, e.g. "__0_new_0".
-//  *
-//  * The inner Map keys are "cellKey" values.
-//  */
-// export type ModificationStateMap = Map<unknown, Map<unknown, ModificationType>>;
-
-// const inProgressSet: Set<ModificationType> = new Set([
-//   'creating',
-//   'updating',
-//   'deleting',
-// ]);
-// const completeSet: Set<ModificationType> = new Set(['created', 'updated']);
-// const errorSet: Set<ModificationType> = new Set([
-//   'creationFailed',
-//   'updateFailed',
-//   'deleteFailed',
-// ]);
-
-// export function getGenericModificationStatusByPK(
-//   recordModificationState: ModificationStateMap,
-//   primaryKeyValue: unknown,
-// ): ModificationStatus {
-//   const type = recordModificationState
-//     .get(primaryKeyValue)
-//     ?.get(RECORD_COMBINED_STATE_KEY);
-//   if (!type) {
-//     return 'idle';
-//   }
-//   if (inProgressSet.has(type)) {
-//     return 'inProcess';
-//   }
-//   if (completeSet.has(type)) {
-//     return 'complete';
-//   }
-//   if (errorSet.has(type)) {
-//     return 'error';
-//   }
-//   return 'idle';
-// }
-
-// function getCombinedUpdateState(
-//   cellMap: Map<unknown, ModificationType>,
-// ): UpdateModificationType {
-//   let state: UpdateModificationType = 'updated';
-//   // eslint-disable-next-line no-restricted-syntax
-//   for (const [key, value] of cellMap) {
-//     if (key !== RECORD_COMBINED_STATE_KEY) {
-//       if (value === 'updating') {
-//         state = 'updating';
-//         break;
-//       } else if (value === 'updateFailed') {
-//         state = 'updateFailed';
-//         break;
-//       }
-//     }
-//   }
-//   return state;
-// }
-
-// function getCombinedModificationState(
-//   recordModificationState: Readable<ModificationStateMap>,
-// ) {
-//   return derived(
-//     recordModificationState,
-//     ($recordModificationState, set) => {
-//       if ($recordModificationState.size === 0) {
-//         set('idle');
-//       } else {
-//         let finalState: ModificationStatus = 'idle';
-//         // eslint-disable-next-line no-restricted-syntax
-//         for (const value of $recordModificationState.values()) {
-//           const rowState = value?.get(RECORD_COMBINED_STATE_KEY);
-//           if (rowState) {
-//             if (inProgressSet.has(rowState)) {
-//               finalState = 'inProcess';
-//               break;
-//             }
-//             if (errorSet.has(rowState)) {
-//               finalState = 'error';
-//             } else if (completeSet.has(rowState) && finalState === 'idle') {
-//               finalState = 'complete';
-//             }
-//           }
-//         }
-//         set(finalState);
-//       }
-//     },
-//     'idle' as ModificationStatus,
-//   );
-// }
-
-// =============================================================================
-
 export type CellKey = string;
 export type RowKey = string;
 
@@ -142,17 +32,6 @@ export function extractRowKeyFromCellKey(cellKey: CellKey): RowKey {
     .slice(0, -1)
     .join(CELL_KEY_SEPARATOR);
 }
-
-// interface CellStatusReport {
-//   clientSideErrors: Writable<string[]>;
-//   modificationStatus: Writable<RequestStatus | undefined>;
-// }
-
-// interface RowStatusReport {
-//   deletionStatus: Writable<RequestStatus | undefined>;
-//   creationStatus: Writable<RequestStatus | undefined>;
-//   hasModificationFailures: Readable<boolean>;
-// }
 
 /**
  * Unlike in `RequestStatus`, here the state and the error messages are
@@ -221,8 +100,6 @@ function getRowStatus({
     .mapValues(makeStatusComplete);
 }
 
-// =============================================================================
-
 export interface MetaProps {
   pagination: Pagination;
   sorting: Sorting;
@@ -283,11 +160,6 @@ export class Meta {
 
   selectedRows = new WritableSet<RowKey>();
 
-  // Row -> Cell -> Type
-  // recordModificationState: Writable<ModificationStateMap>; // TODO_SC remove
-
-  // combinedModificationState: Readable<ModificationStatus>; // TODO_SC remove
-
   cellClientSideErrors = new WritableMap<CellKey, string[]>();
 
   /**
@@ -330,12 +202,6 @@ export class Meta {
     this.grouping = writable(props.grouping);
     this.filtering = writable(props.filtering);
 
-    // this.recordModificationState = writable(new Map() as ModificationStateMap);
-
-    // this.combinedModificationState = getCombinedModificationState(
-    //   this.recordModificationState,
-    // );
-
     this.rowStatus = derived(
       [
         this.cellModificationStatus,
@@ -377,97 +243,4 @@ export class Meta {
       }),
     );
   }
-
-  // selectRecordByPrimaryKey(primaryKeyValue: unknown): void {
-  //   if (!get(this.selectedRows).has(primaryKeyValue)) {
-  //     this.selectedRows.update((existingSet) => {
-  //       const newSet = new Set(existingSet);
-  //       newSet.add(primaryKeyValue);
-  //       return newSet;
-  //     });
-  //   }
-  // }
-
-  // deSelectRecordByPrimaryKey(primaryKeyValue: unknown): void {
-  //   if (get(this.selectedRows).has(primaryKeyValue)) {
-  //     this.selectedRows.update((existingSet) => {
-  //       const newSet = new Set(existingSet);
-  //       newSet.delete(primaryKeyValue);
-  //       return newSet;
-  //     });
-  //   }
-  // }
-
-  // =============================================================================
-
-  // setRecordModificationState(key: unknown, state: ModificationType): void {
-  //   this.recordModificationState.update((existingMap) => {
-  //     const newMap = new Map(existingMap);
-  //     let cellMap = newMap.get(key);
-  //     if (!cellMap) {
-  //       cellMap = new Map();
-  //       newMap.set(key, cellMap);
-  //     }
-  //     cellMap.set(RECORD_COMBINED_STATE_KEY, state);
-  //     return newMap;
-  //   });
-  // }
-
-  // clearRecordModificationState(key: unknown): void {
-  //   this.recordModificationState.update((existingMap) => {
-  //     const newMap = new Map(existingMap);
-  //     newMap.delete(key);
-  //     return newMap;
-  //   });
-  // }
-
-  // clearAllRecordModificationStates(): void {
-  //   this.recordModificationState.set(new Map());
-  // }
-
-  // setCellUpdateState(
-  //   recordKey: unknown,
-  //   cellKey: unknown,
-  //   state: UpdateModificationType,
-  // ): void {
-  //   this.recordModificationState.update((existingMap) => {
-  //     const newMap = new Map(existingMap);
-  //     let cellMap = newMap.get(recordKey);
-  //     if (!cellMap) {
-  //       cellMap = new Map();
-  //       newMap.set(recordKey, cellMap);
-  //     }
-  //     cellMap.set(cellKey, state);
-  //     cellMap.set(RECORD_COMBINED_STATE_KEY, getCombinedUpdateState(cellMap));
-  //     return newMap;
-  //   });
-  // }
-
-  // setMultipleRecordModificationStates(
-  //   keys: unknown[],
-  //   state: ModificationType,
-  // ): void {
-  //   this.recordModificationState.update((existingMap) => {
-  //     const newMap = new Map(existingMap);
-  //     keys.forEach((rowKey) => {
-  //       let cellMap = newMap.get(rowKey);
-  //       if (!cellMap) {
-  //         cellMap = new Map();
-  //         newMap.set(rowKey, cellMap);
-  //       }
-  //       cellMap.set(RECORD_COMBINED_STATE_KEY, state);
-  //     });
-  //     return newMap;
-  //   });
-  // }
-
-  // clearMultipleRecordModificationStates(keys: unknown[]): void {
-  //   this.recordModificationState.update((existingMap) => {
-  //     const newMap = new Map(existingMap);
-  //     keys.forEach((value) => {
-  //       newMap.delete(value);
-  //     });
-  //     return newMap;
-  //   });
-  // }
 }
