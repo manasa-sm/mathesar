@@ -166,7 +166,8 @@ function extractRowKeyFromCellKey(cellKey: CellKey): RowKey {
  */
 interface RowStatus {
   /**
-   * The combined state of the most recent "creation" or "deletion" request.
+   * The combined state of the most recent "creation" or "deletion" request. We
+   * use this to set the background color for all cells and the row header.
    */
   wholeRowState?: RequestStatus['state'];
 

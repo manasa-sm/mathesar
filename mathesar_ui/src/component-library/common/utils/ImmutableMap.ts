@@ -32,10 +32,14 @@ export default class ImmutableMap<
   }
 
   /**
-   * When the same keys exist in within the entries of this instance and the
-   * entries supplied, the values from the entries supplied will be used instead
-   * of the values in this instance. This behavior is consistent with the `with`
-   * method.
+   * Merge the entries in this map with entries from a supplied iterable,
+   * producing a map that contains entries having all the keys from both.
+   *
+   * When the same key exists in both this map and the supplied iterable, the
+   * resulting value will be produced using the supplied `mergeValues` function.
+   * The first argument will be the value from this map, the second argument
+   * will be the value from the supplied iterable. If no `mergeValues` function
+   * is supplied, the values from the supplied iterable will be used.
    */
   withEntries(
     entries: Iterable<[Key, Value]>,

@@ -12,7 +12,7 @@ export default class WritableMap<
   Value,
 > implements Readable<ImmutableMap<Key, Value>>
 {
-  private map: Writable<ImmutableMap<Key, Value>>;
+  map: Writable<ImmutableMap<Key, Value>>;
 
   constructor(i: Iterable<[Key, Value]> = []) {
     this.map = writable(new ImmutableMap(i));
